@@ -1,5 +1,4 @@
 #![feature(write_all_vectored)]
-#![feature(io_slice_advance)]
 #![feature(io_error_other)]
 
 use num_enum::TryFromPrimitive;
@@ -26,14 +25,14 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new<A: ToSocketAddrs>(addr: A) -> tokio::io::Result<Self> {
+    pub async fn new<A: ToSocketAddrs>(addr: A) -> std::io::Result<Self> {
         Ok(Self {
             conn: BufStream::new(TcpStream::connect(addr).await?),
         })
     }
 
     // TODO: use [write_all_vectored] when it's ready
-    pub async fn send(&mut self, packet: &Packet) -> tokio::io::Result<()> {
+    pub async fn send(&mut self, packet: &Packet) -> std::io::Result<()> {
         // + 1 for the null byte
         let length = 2 * std::mem::size_of::<i32>() + packet.payload.len() + 1;
 
@@ -50,7 +49,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn recv<'a>(&'a mut self) -> tokio::io::Result<Packet> {
+    pub async fn recv<'a>(&'a mut self) -> std::io::Result<Packet> {
         // Look into sync/stream
         // mcrcon spec says you can have at most 4098 bytes
 
@@ -61,7 +60,7 @@ impl Client {
             .read_i32_le()
             .await?
             .try_into()
-            .map_err(tokio::io::Error::other)?;
+            .map_err(std::io::Error::other)?;
 
         let mut payload = Vec::with_capacity(
             length as usize - std::mem::size_of_val(&request_id) - std::mem::size_of_val(&r#type),
